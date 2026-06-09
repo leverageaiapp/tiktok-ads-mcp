@@ -28,6 +28,61 @@ export TIKTOK_MUTATION_MODE=live
 
 Even with that env var, all MCP write tools and CLI write commands default to dry-run.
 
+## Credentials
+
+You need two values:
+
+- `TIKTOK_ACCESS_TOKEN`: OAuth access token used in TikTok's `Access-Token` request header.
+- `TIKTOK_ADVERTISER_ID`: TikTok Ads advertiser account ID that the token can access.
+
+### Quick path
+
+1. Log in to the TikTok API for Business portal: https://business-api.tiktok.com/portal
+2. Create or open a developer app with Marketing API permissions.
+3. Use the app's authorization / API Inspector flow to authorize the TikTok Business user that has access to the ad account.
+4. Copy the generated access token into `TIKTOK_ACCESS_TOKEN`.
+5. Get the advertiser ID from TikTok Ads Manager. It is the ad account ID shown for the ad account. You can also list advertiser IDs with the API command below, which is the more reliable method.
+
+### OAuth path
+
+Use this when you want to generate the token yourself from an OAuth `auth_code`.
+
+1. In the TikTok API for Business portal, create a developer app and configure its redirect URL.
+2. Open the app's authorization URL from the portal, log in, and approve access for the required ad account permissions.
+3. After redirect, copy the `auth_code` query parameter from the redirect URL.
+4. Exchange `auth_code` for tokens:
+
+```bash
+curl --location 'https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "app_id": "YOUR_APP_ID",
+    "secret": "YOUR_APP_SECRET",
+    "auth_code": "AUTH_CODE_FROM_REDIRECT"
+  }'
+```
+
+The response contains `data.access_token`. Export it:
+
+```bash
+export TIKTOK_ACCESS_TOKEN="ACCESS_TOKEN_FROM_RESPONSE"
+```
+
+5. List advertiser accounts authorized for that token:
+
+```bash
+curl --location 'https://business-api.tiktok.com/open_api/v1.3/oauth2/advertiser/get/?app_id=YOUR_APP_ID&secret=YOUR_APP_SECRET' \
+  --header "Access-Token: $TIKTOK_ACCESS_TOKEN"
+```
+
+Pick the advertiser account ID from the response and export it:
+
+```bash
+export TIKTOK_ADVERTISER_ID="ADVERTISER_ID_FROM_RESPONSE"
+```
+
+Keep `app_id`, `secret`, access tokens, and refresh tokens out of git. Put real values in your shell, MCP client env, or a local `.env` file that is not committed.
+
 ## MCP Usage
 
 Add this to your MCP client config:
@@ -91,6 +146,7 @@ TikTok requires the access token in the `Access-Token` header, not `Authorizatio
 References checked while building:
 
 - Official TikTok Business API portal: https://business-api.tiktok.com/portal/docs
+- Official SDK docs list OAuth token exchange and advertiser listing endpoints: https://github.com/tiktok/tiktok-business-api-sdk/blob/main/js_sdk/docs/AuthenticationApi.md
 - Official SDK docs list campaign endpoints including `/campaign/get/`, `/campaign/update/`, and `/campaign/status/update/`: https://github.com/tiktok/tiktok-business-api-sdk/blob/main/js_sdk/docs/CampaignCreationApi.md
 - Official SDK docs list `/report/integrated/get/`: https://github.com/tiktok/tiktok-business-api-sdk/blob/main/js_sdk/docs/ReportingApi.md
 - Community MCP read-only reference: https://github.com/ysntony/tiktok-ads-mcp
