@@ -1,0 +1,3 @@
+"""TikTok Ads MCP and CLI package."""
+
+__version__ = "0.1.0"
